@@ -1,0 +1,44 @@
+.gameBoard {
+  width: 25vw;
+  height: 100vh;
+  background-color: azure;
+  margin-left: 37.5vw;
+  padding: 0;
+  display: inline-block;
+  position: absolute;
+}
+
+.blockBorder {
+  /*position: absolute;*/
+  width: 2.5vw;
+  height: 2.5vw;
+  border: 2px solid black;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.innerBlock {
+  height: 2vw;
+  width: 2vw;
+  background-color: #ffffff;
+  border: 2px solid black;
+  box-sizing: border-box;
+}
+
+.blocks {
+  display: inline;
+  position: absolute;
+}
+
+@keyframes clear {
+  0%{opacity: 1}
+  25%{opacity: 0}
+  50%{opacity: 1}
+  100%{opacity: 0}
+}
+
+.line.clear {
+  animation: clear 0.5s;
+}
