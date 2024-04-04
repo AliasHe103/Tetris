@@ -1,3 +1,73 @@
+.mainBoard {
+  width: 100vw;
+  height: 100vh;
+}
+
+.leftBar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: 37.5vw;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.arrowContainer {
+  width: 15vw;
+  height: 10vw;
+  display: grid;
+  grid-template-columns: repeat(3, 4vw);
+  grid-template-rows: repeat(2, 3.5vw);
+  grid-row-gap: 10px;
+  justify-items: center;
+  align-items: center;
+}
+
+.arrow {
+  display: inline-block;
+  cursor: pointer;
+  width: 4vw;
+  height: 4vw;
+}
+
+.arrow:nth-child(1) {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.arrow:nth-child(2) {
+  grid-column: 2;
+  grid-row: 1;
+  transform: rotate(90deg);
+}
+
+.arrow:nth-child(3) {
+  grid-column: 3;
+  grid-row: 2;
+  transform: rotate(180deg);
+}
+
+.arrow:nth-child(4) {
+  grid-column: 2;
+  grid-row: 2;
+  transform: rotate(270deg);
+}
+
+.rightBar {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100vh;
+  width: 37.5vw;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+  align-items: center;
+}
+
 .gameBoard {
   width: 25vw;
   height: 100vh;
@@ -22,9 +92,11 @@
 .innerBlock {
   height: 2vw;
   width: 2vw;
-  background-color: #ffffff;
+  /*background-color: black;*/
   border: 2px solid black;
   box-sizing: border-box;
+  background-image: linear-gradient(120deg,#a1c4fd 0%, #c2e9fb 100%)
+  /*background-color: rgba(255, 255, 255, 0.5);*/
 }
 
 .blocks {
@@ -41,4 +113,71 @@
 
 .line.clear {
   animation: clear 0.5s;
+}
+
+
+#line1::after, #line11::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: 2px;
+  height: 100%;
+  background-color: #000;
+}
+
+#line2::after, #line3::after, #line4::after, #line5::after, #line6::after, #line7::after, #line8::after, #line9::after, #line10::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: 2px;
+  height: 100%;
+  background-image: linear-gradient(#000 30%, transparent 0%);
+  background-position: left;
+  background-size: 1px 20px;
+  background-repeat: repeat-y;
+
+}
+
+#line1::after {
+  left: 0;
+}
+
+#line2::after {
+  left: calc(2.5vw - 1px);
+}
+
+#line3::after {
+  left: calc(5vw - 1px);
+}
+
+#line4::after {
+  left: calc(7.5vw - 1px);
+}
+
+#line5::after {
+  left: calc(10vw - 1px);
+}
+
+#line6::after {
+  left: calc(12.5vw - 1px);
+}
+
+#line7::after {
+  left: calc(15vw - 1px);
+}
+
+#line8::after {
+  left: calc(17.5vw - 1px);
+}
+
+#line9::after {
+  left: calc(20vw - 1px);
+}
+
+#line10::after {
+  left: calc(22.5vw - 1px);
+}
+
+#line11::after {
+  left: calc(25vw - 1px);
 }

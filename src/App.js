@@ -1,7 +1,8 @@
 import './App.css';
+import arrow from './images/arrow.svg'
 import lodash from 'lodash';
 import {produce} from 'immer'
-import {Block, Blocks} from "./teris";
+import {Block} from "./teris";
 import {useCallback, useEffect, useRef, useState} from "react";
 
 class Falling {
@@ -15,6 +16,7 @@ class Falling {
         this.ele2 = {row: row2, column: column2};
         this.ele3 = {row: row3, column: column3};
         this.keys = ['ele0', 'ele1', 'ele2', 'ele3'];
+        this.cells = cells;
         this.startCheckCollision(cells);
     }
     log() {
@@ -28,10 +30,10 @@ class Falling {
             }
         }
     }
-    async fall(height, cells) {
+    async fall(height) {
         if (this.status === 'fall') {
-            for (let key in this) {
-                if (key.startsWith('ele') && this[key].row + height < 20) {
+            for (let key of this.keys) {
+                if (this[key].row + height < 20) {
                     this[key].row += height;
                 }
             }
@@ -50,38 +52,60 @@ class Falling {
         updateCells(this.ele2.row, this.ele2.column, false);
         updateCells(this.ele3.row, this.ele3.column, false);
     }
-    async advancedFall(height, cells, updateCells) {
+    async advancedFall(height, updateCells) {
         if (this.status === 'fall') {
             await this.remove(updateCells);
-            await this.fall(height, cells);
+            await this.fall(height, this.cells);
             await this.apply(updateCells);
         }
     }
-    async fallDown(cells, updateCells) {
+    async fallDown(updateCells) {
         if (this.status === 'fall') {
             this.status = 'static';
-            const rows = [this.ele0.row, this.ele1.row, this.ele2.row, this.ele3.row];
-            const maxRow = Math.max(...rows);
-            let endRow = maxRow + 1;
-            while (endRow < 20 && !cells[endRow][this.ele0.column] && !cells[endRow][this.ele1.column] &&
-            !cells[endRow][this.ele2.column] && !cells[endRow][this.ele3.column]) {
-                endRow++;
+            let rows = [];
+            let cols = [];
+            for (let key of this.keys) {
+                if (!cols.includes(this[key].column)) {
+                    cols.push(this[key].column);
+                    rows.push(this[key].row);
+                }
+                else {
+                    rows[cols.indexOf(this[key].column)] = Math.max(rows[cols.indexOf(this[key].column)], this[key].row);
+                }
             }
-            endRow--;
+            if (rows.length !== cols.length) {
+                throw new Error('length of rows doesn\'t match that of cols');
+            }
+            console.log('row col', rows, cols);
+            const maxRow = Math.max(...rows);
+            let addition = 1;
+            let endMark = false;
+            while (maxRow + addition < 20) {
+                for (let i = 0; i < rows.length; i++) {
+                    if (this.cells[rows[i] + addition][cols[i]]) {
+                        endMark = true;
+                        break;
+                    }
+                }
+                if (endMark) break;
+                addition++;
+            }
+            addition--;
+            console.log(addition);
             await this.remove(updateCells);
-            this.ele0.row += endRow - maxRow;
-            this.ele1.row += endRow - maxRow;
-            this.ele2.row += endRow - maxRow;
-            this.ele3.row += endRow - maxRow;
+            this.ele0.row += addition;
+            this.ele1.row += addition;
+            this.ele2.row += addition;
+            this.ele3.row += addition;
             await this.apply(updateCells);
         }
     }
-    async checkCollision(cells) {
+    async checkCollision() {
         if (this.status === 'static') {
             this.stopCheckCollision();
             return true;
         }
-        if (this.ele0.row === 19 || this.ele1.row === 19 || this.ele2.row === 19 || this.ele3.row ===19) {
+        if (this.ele0.row === 19 || this.ele1.row === 19 || this.ele2.row === 19 || this.ele3.row === 19) {
             this.status = 'static';
             return true;
         }
@@ -99,7 +123,7 @@ class Falling {
         }
         if (rows.length === cols.length) {
             for (let i = 0; i < rows.length; i++) {
-                if (cells[rows[i] + 1][cols[i]]) {
+                if (this.cells[rows[i] + 1][cols[i]]) {
                     this.status = 'static';
                     return true;
                 }
@@ -108,9 +132,9 @@ class Falling {
         else throw new Error('length of rows doesn\'t match that of cols');
         return false;
     }
-    startCheckCollision(cells) {
+    startCheckCollision() {
         this.checkCollisionInterval = setInterval(async() => {
-            await this.checkCollision(cells);
+            await this.checkCollision(this.cells);
         }, 100);
     }
     stopCheckCollision() {
@@ -119,58 +143,63 @@ class Falling {
             this.checkCollisionInterval = null;
         }
     }
-    checkOutRange() {
-        for (let key of this.keys) {
-            if (this[key].row > 19 || this[key].row < 0) return true;
-            if (this[key].column > 9 || this[key].column < 0) return true;
-        }
-        return false;
-    }
-    checkOverlap({cells, exclude}) {
-        for (let key of this.keys) {
-            if (key !== exclude) {
-                if (cells[this[key].row][this[key].column]) return true;
+    static checkShift(cells, before, after) {
+        for (let ele of after) {
+            // 检查新位置是否超出游戏区域边界
+            if (ele.row < 0 || ele.row >= 20 || ele.column < 0 || ele.column >= 10) {
+                return false;
+            }
+            // 检查新位置是否与其他方块重叠
+            if (cells[ele.row][ele.column]) {
+                let next = false;
+                for (let i = 0; i < before.length; i++) {
+                    if (before[i].row === ele.row && before[i].column === ele.column) {
+                        next = true;
+                        break;
+                    }
+                }
+                if (next) continue;
+                return false;
             }
         }
+        return true;
     }
-    checkRotation(cells) {
+    checkRotation() {
         const row = this.ele1.row;
         const column = this.ele1.column;
-        console.log(row, column);
         if (this.kind === 1) {
             if (this.rotation === 0) {
                 if (row - 1 >= 0 && row + 2 < 20) {//越界检查
-                    return !(cells[row - 1][column - 1] || cells[row - 1][column]
-                        || cells[row + 1][column] || cells[row + 1][column + 1] || cells[row + 1][column + 2]
-                        || cells[row + 2][column] || cells[row + 2][column + 1] || cells[row + 2][column + 2]
+                    return !(this.cells[row - 1][column - 1] || this.cells[row - 1][column]
+                        || this.cells[row + 1][column] || this.cells[row + 1][column + 1] || this.cells[row + 1][column + 2]
+                        || this.cells[row + 2][column] || this.cells[row + 2][column + 1] || this.cells[row + 2][column + 2]
                     );
                 }
                 else return false;
             }
             else if (this.rotation === 90) {
-                console.log('in 90')
                 if (column + 1 < 10 && column - 2 >= 0) {
-                    return !(cells[row - 1][column + 1] || cells[row][column + 1]
-                        || cells[row][column - 2] || cells[row + 1][column - 2] || cells[row + 2][column - 2]
-                        || cells[row][column - 1] || cells[row + 1][column - 1] || cells[row + 1][column - 1]
+                    return !(this.cells[row - 1][column + 1] || this.cells[row][column + 1]
+                        || this.cells[row][column - 2] || this.cells[row + 1][column - 2] || this.cells[row + 2][column - 2]
+                        || this.cells[row][column - 1] || this.cells[row + 1][column - 1] || this.cells[row + 1][column - 1]
                     );
                 }
                 else return false;
             }
             else if (this.rotation === 180) {
                 if (row - 2 >= 0 && row + 1 < 20) {
-                    return !(cells[row + 1][column] || cells[row + 1][column + 1]
-                         || cells[row - 1][column - 2] || cells[row - 1][column - 1] || cells[row - 1][column]
-                         || cells[row - 2][column - 2] || cells[row - 2][column - 1] || cells[row - 2][column]
+                    return !(this.cells[row + 1][column] || this.cells[row + 1][column + 1]
+                        || this.cells[row - 1][column - 2] || this.cells[row - 1][column - 1] || this.cells[row - 1][column]
+                        || this.cells[row - 2][column - 2] || this.cells[row - 2][column - 1] || this.cells[row - 2][column]
                     );
                 }
                 else return false;
             }
             else if (this.rotation === 270) {
                 if (column + 2 < 10 && column - 1 >= 0) {
-                    return !(cells[row - 1][column - 1] || cells[row][column - 1]
-                         || cells[row - 2][column + 1] || cells[row - 1][column + 1] || cells[row][column + 1]
-                         || cells[row - 2][column + 2] || cells[row - 2][column + 2] || cells[row - 2][column + 2]
+                    return !(this.cells[row + 1][column - 1] || this.cells[row][column - 1]
+                        || this.cells[row - 2][column + 1] || this.cells[row - 1][column + 1] || this.cells[row][column + 1]
+                        || this.cells[row - 2][column + 2] || this.cells[row - 2][column + 2] || this.cells[row - 2][column + 2]
                     );
                 }
                 else return false;
@@ -178,10 +207,50 @@ class Falling {
             else throw new Error('invalid rotation value!');
         }
         else if (this.kind === 2) {
-
+            return false;
+        }
+        else if (this.kind === 3) {
+            if (this.rotation === 0) {
+                if (row - 1 >= 0 && row + 2 < 20) {//越界检查
+                    return !(this.cells[row - 1][column + 1]
+                        || this.cells[row + 1][column] || this.cells[row + 1][column + 1] || this.cells[row + 1][column + 2]
+                        || this.cells[row + 2][column] || this.cells[row + 2][column + 1] || this.cells[row + 2][column + 2]
+                    );
+                }
+                else return false;
+            }
+            else if (this.rotation === 90) {
+                if (column + 1 < 10 && column - 2 >= 0) {
+                    return !(this.cells[row + 1][column + 1]
+                        || this.cells[row][column - 2] || this.cells[row + 1][column - 2] || this.cells[row + 2][column - 2]
+                        || this.cells[row][column - 1] || this.cells[row + 1][column - 1] || this.cells[row + 1][column - 1]
+                    );
+                }
+                else return false;
+            }
+            else if (this.rotation === 180) {
+                if (row - 2 >= 0 && row + 1 < 20) {
+                    return !(this.cells[row + 1][column - 1]
+                        || this.cells[row - 1][column - 2] || this.cells[row - 1][column - 1] || this.cells[row - 1][column]
+                        || this.cells[row - 2][column - 2] || this.cells[row - 2][column - 1] || this.cells[row - 2][column]
+                    );
+                }
+                else return false;
+            }
+            else if (this.rotation === 270) {
+                if (column + 2 < 10 && column - 1 >= 0) {
+                    return !(this.cells[row - 1][column - 1]
+                        || this.cells[row - 2][column + 1] || this.cells[row - 1][column + 1] || this.cells[row][column + 1]
+                        || this.cells[row - 2][column + 2] || this.cells[row - 2][column + 2] || this.cells[row - 2][column + 2]
+                    );
+                }
+                else return false;
+            }
+            else throw new Error('invalid rotation value!');
         }
     }
-    async rotate(cells, updateCells) {
+
+    async rotate(updateCells) {
         if (this.status === 'fall') {
             this.status = 'rotate';
             let copy = lodash.cloneDeep(this);
@@ -217,10 +286,44 @@ class Falling {
                 } else {
                     throw new Error('invalid rotation value!');
                 }
-            } else if (this.kind === 2) {
-
             }
-            const check = await this.checkRotation(cells);
+            else if (this.kind === 2) {
+                //这类的方块是不可旋转的
+            }
+            else if (this.kind === 3) {//kind=3
+                if (this.rotation === 0) {
+                    copy.ele0.row++;
+                    copy.ele0.column++;
+                    copy.ele2.row++;
+                    copy.ele2.column--;
+                    copy.ele3.row += 2;
+                    copy.ele3.column -= 2;
+                } else if (this.rotation === 90) {
+                    copy.ele0.row++;
+                    copy.ele0.column--;
+                    copy.ele2.row--;
+                    copy.ele2.column--;
+                    copy.ele3.row -= 2;
+                    copy.ele3.column -= 2;
+                } else if (this.rotation === 180) {
+                    copy.ele0.row--;
+                    copy.ele0.column--;
+                    copy.ele2.row--;
+                    copy.ele2.column++;
+                    copy.ele3.row -= 2;
+                    copy.ele3.column += 2;
+                } else if (this.rotation === 270) {
+                    copy.ele0.row--;
+                    copy.ele0.column++;
+                    copy.ele2.row++;
+                    copy.ele2.column++;
+                    copy.ele3.row += 2;
+                    copy.ele3.column += 2;
+                } else {
+                    throw new Error('invalid rotation value!');
+                }
+            }
+            const check = await this.checkRotation(this.cells);
             console.log('check', check)
             if (check) {
                 console.log('change')
@@ -232,34 +335,80 @@ class Falling {
             this.status = 'fall';
         }
     }
-    async shift(direction, size, cells, updateCells) {
+    async shift(direction, size, updateCells) {
         if (this.status === 'fall' && typeof size === 'number') {
             this.status = 'shift';
-            let copy = lodash.cloneDeep(this);
-            copy.ele0.column += direction === 'right' ? size : -size;
-            copy.ele1.column += direction === 'right' ? size : -size;
-            copy.ele2.column += direction === 'right' ? size : -size;
-            copy.ele3.column += direction === 'right' ? size : -size;
-            if (!copy.checkOutRange() && !copy.checkOverlap({cells: cells})) {
+            const addition = direction === 'right' ? size : -size;
+            const before = [
+                { row: this.ele0.row, column: this.ele0.column },
+                { row: this.ele1.row, column: this.ele1.column },
+                { row: this.ele2.row, column: this.ele2.column },
+                { row: this.ele3.row, column: this.ele3.column },
+            ];
+            const after = [
+                { row: this.ele0.row, column: this.ele0.column + addition },
+                { row: this.ele1.row, column: this.ele1.column + addition },
+                { row: this.ele2.row, column: this.ele2.column + addition },
+                { row: this.ele3.row, column: this.ele3.column + addition },
+            ];
+            const valid = await Falling.checkShift(this.cells, before, after);
+            if (valid) {
                 await this.remove(updateCells);
-                this.copyEle(copy);
+                this.ele0.column += addition;
+                this.ele1.column += addition;
+                this.ele2.column += addition;
+                this.ele3.column += addition;
                 await this.apply(updateCells);
+                this.status = 'fall';
+                return true;
+            } else {
+                this.status = 'fall';
+                return false;
             }
-            this.status = 'fall';
         }
     }
+}
+
+const initialFalling = (cells) => {
+    const randomKind = Math.floor(Math.random() * 3 + 1);
+    if (randomKind === 1) {
+        const randomStartColumn = Math.floor(Math.random() * 7);
+        return {//1行，4个方块
+            arr: [0, randomStartColumn, 0, randomStartColumn + 1, 0, randomStartColumn + 2, 0, randomStartColumn + 3],
+            kind: 1,
+            cells: cells
+        };
+    }
+    else if (randomKind === 2) {
+        const randomStartColumn = Math.floor(Math.random() * 9);
+        return {//2行，每行2个方块的正方形
+            arr: [0, randomStartColumn, 0, randomStartColumn + 1, 1, randomStartColumn, 1, randomStartColumn + 1],
+            kind: 2,
+            cells: cells
+        };
+    }
+    else if (randomKind === 3) {
+        const randomStartColumn = Math.floor(Math.random() * 8);
+        return {//2行，一行1个方块，二行3个方块，一行方块在左端
+            arr: [0, randomStartColumn, 1, randomStartColumn, 1, randomStartColumn + 1, 1, randomStartColumn + 2],
+            kind: 3,
+            cells: cells
+        }
+    }
+    else throw new Error('invalid randomKind');
 }
 
 //游戏基本设计：20 * 10 的方格， 每次刷新方块掉落一格
 function App() {
     const [cells, setCells] = useState(Array(20).fill(false).map(() => Array(10).fill(false)));
+    const [playerScore, setPlayerScore] = useState(0);
     const cellsRef = useRef(cells);
     const fallingRef = useRef(null);
     const windowHeight = window.innerHeight;
     const windowWidth = window.innerWidth;
-
     //useEffect1: 生成新的掉落方块，已经在generateNewBlock函数中防止重新生成
     useEffect(() => {
+        if (fallingRef.current === null)
         setTimeout(() => generateNewBlock(), 1000);
     }, [fallingRef.current]);
     //useEffect2: 实时维持cellsRef保存cells的最新状态，使相关调用正确运行
@@ -295,20 +444,20 @@ function App() {
             )
         );
     }
-    
+
     const handleKeydown = (event) => {
         if (fallingRef.current && fallingRef.current.status === 'fall') {
             if (event.key === 'ArrowUp') {
-                handleClick();
+                handleRotate();
             }
             else if (event.key === 'ArrowDown') {
-                fallingRef.current.fallDown(cellsRef.current, updateCells);
+                fallingRef.current.fallDown(updateCells);
             }
             else if (event.key === 'ArrowLeft') {
-                fallingRef.current.shift('left', 1, cells, updateCells);
+                fallingRef.current.shift('left', 1, updateCells);
             }
             else if (event.key === 'ArrowRight') {
-                fallingRef.current.shift('right', 1, cells, updateCells);
+                fallingRef.current.shift('right', 1, updateCells);
             }
         }
     }
@@ -331,9 +480,9 @@ function App() {
         const result = checkLines(cellsRef.current);
         if (result.validity) {
             result.lines.forEach(line => {
-                const lineCells = document.getElementById(`${line}line`);
+                const lineCells = document.getElementById(`line${line}`);
                 lineCells.classList.add('clear');
-                setTimeout(() => lineCells.classList.remove('clear'), 1100);
+                setTimeout(() => lineCells.classList.remove('clear'), 600);
             });
             setTimeout(() => {
                 let updatedCells = cellsRef.current.map(row => [...row]);
@@ -352,6 +501,7 @@ function App() {
                     }
                 }
                 setCells(updatedCells);
+                setPlayerScore(playerScore + 100 * result.lines.length);
             }, 500);
         }
     }
@@ -362,7 +512,7 @@ function App() {
             return;
         }
         console.log('generate an instance');
-        fallingRef.current = new Falling({arr: [0, 1, 0, 2, 0, 3, 0, 4], kind: 1, cells: cellsRef.current});
+        fallingRef.current = new Falling(initialFalling(cellsRef.current));
         let falling = fallingRef.current;
         falling.apply(updateCells);
         const interval = setInterval(async () => {
@@ -381,18 +531,35 @@ function App() {
         }, 1000);
     }
 
-    const handleClick = () => {
+    const handleRotate = () => {
         if (fallingRef.current && fallingRef.current.status === 'fall') {
-            fallingRef.current.rotate(cellsRef.current, updateCells);
+            fallingRef.current.rotate(updateCells);
         }
     }
-
+    const handleLeft = () => {
+        fallingRef.current.shift('left', 1, cellsRef.current, updateCells)
+        console.log('validity', fallingRef.current && fallingRef.current.status === 'fall')
+    };
     return (
         <div className={"mainBoard"}>
-            <button onClick={handleClick}>旋转</button>
+            <div className={"leftBar"}>
+                <div className={"score"}>{`分数 ${playerScore}`}</div>
+            </div>
+            <div className={"rightBar"}>
+                <div className={"arrowContainer"}>
+                    <img src={arrow} alt={"left arrow"} className={"arrow"}
+                         onClick={handleLeft}/>
+                    <img src={arrow} alt={"up arrow"} className={"arrow"}
+                         onClick={() => (fallingRef.current && fallingRef.current.status === 'fall') && handleRotate()}/>
+                    <img src={arrow} alt={"right arrow"} className={"arrow"}
+                         onClick={() => (fallingRef.current && fallingRef.current.status === 'fall') && fallingRef.current.shift('right', 1, cells, updateCells)}/>
+                    <img src={arrow} alt={"down arrow"} className={"arrow"}
+                         onClick={() => (fallingRef.current && fallingRef.current.status === 'fall') && fallingRef.current.fallDown(cellsRef.current, updateCells)}/>
+                </div>
+            </div>
             <div className="gameBoard">
                 {cells.map((rowCells, row) =>
-                    <div className={'line'} id={`${row}line`}>
+                    <div className={'line'} id={`line${row}`}>
                         {rowCells.map((cell, column) =>
                             cell && <Block key={`${row * 10 + column} Block`} top={0.05 * row * windowHeight} left={0.025 * column * windowWidth}></Block>)
                         }
