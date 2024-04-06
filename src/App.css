@@ -1,6 +1,26 @@
+h1 {
+  color: paleturquoise;
+  font-family: "JetBrains Mono", monospace;
+}
+
+.score {
+  color: #a1c4fd;
+  font-size: 25px;
+  font-weight: bold;
+  font-family: "JetBrains Mono", monospace;
+}
+
+html {
+  overflow-x: hidden;
+}
+
 .mainBoard {
   width: 100vw;
   height: 100vh;
+  max-height: 100vh;
+  background-color: #ffffff;
+  background-image: url("./images/bg1.png");
+  background-size: cover;
 }
 
 .leftBar {
@@ -33,6 +53,10 @@
   height: 4vw;
 }
 
+.arrow:hover {
+  opacity: 0.8;
+}
+
 .arrow:nth-child(1) {
   grid-column: 1;
   grid-row: 2;
@@ -56,6 +80,22 @@
   transform: rotate(270deg);
 }
 
+.restartBtn:hover {
+  opacity: 0.8;
+}
+
+.restartBtn {
+  cursor: pointer;
+  width: 80px;
+  height: 50px;
+  color: white;
+  background-color: #a5a3f8;
+  border: none;
+  border-radius: 15px;
+  position: relative;
+  right: 2vw;
+}
+
 .rightBar {
   position: absolute;
   right: 0;
@@ -71,15 +111,39 @@
 .gameBoard {
   width: 25vw;
   height: 100vh;
-  background-color: azure;
+  background-color: #ffffff;
   margin-left: 37.5vw;
   padding: 0;
   display: inline-block;
   position: absolute;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+@keyframes emerge {
+  from{opacity: 0}
+  to{opacity: 1}
+}
+
+.gameOverText {
+  animation: emerge 2s;
+  position: fixed;
+  width: 7.5vw;
+  height: 50px;
+  top: 40%;
+  left: calc(50% - 5vw);
+  color: white;
+  font-weight: bold;
+  font-size: 25px;
+  font-family: "JetBrains Mono", fantasy;
+  letter-spacing: 5px;
+  border-style: double;
+  padding: 20px;
+  text-align: center;
+  background-color: #adccfb;
 }
 
 .blockBorder {
-  /*position: absolute;*/
   width: 2.5vw;
   height: 2.5vw;
   border: 2px solid black;
@@ -92,11 +156,9 @@
 .innerBlock {
   height: 2vw;
   width: 2vw;
-  /*background-color: black;*/
   border: 2px solid black;
   box-sizing: border-box;
-  background-image: linear-gradient(120deg,#a1c4fd 0%, #c2e9fb 100%)
-  /*background-color: rgba(255, 255, 255, 0.5);*/
+  background-image:linear-gradient(0deg,#cfd9df 0%, #e2ebf0 100%);
 }
 
 .blocks {
@@ -120,7 +182,7 @@
   content: "";
   position: absolute;
   top: 0;
-  width: 2px;
+  width: 1px;
   height: 100%;
   background-color: #000;
 }
@@ -180,4 +242,22 @@
 
 #line11::after {
   left: calc(25vw - 1px);
+}
+
+a {
+  font-family: Arial, serif;
+  color: #adccfb;
+  text-decoration: none;
+  margin: 5px;
+}
+
+.githubIcon {
+  width: 14px;
+  height: 14px;
+}
+
+.hrefItem {
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
