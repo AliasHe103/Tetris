@@ -8,6 +8,7 @@ import {useCallback, useEffect, useRef, useState} from "react";
 function App() {
     const [cells, setCells] = useState(Array(20).fill(false).map(() => Array(10).fill(false)));
     const [playerScore, setPlayerScore] = useState(0);
+    const [gameStart, setGameStart] = useState(false);
     const [gameOver, setGameOver] = useState(false);
     const cellsRef = useRef(cells);
     const fallingRef = useRef(null);
@@ -15,10 +16,10 @@ function App() {
     const windowWidth = window.innerWidth;
     //useEffect1: 生成新的掉落方块，已经在generateNewBlock函数中防止重新生成
     useEffect(() => {
-        if (fallingRef.current === null && !gameOver) {
+        if (fallingRef.current === null && !gameOver && gameStart) {
             setTimeout(() => generateNewBlock(), 1000);
         }
-    }, [fallingRef.current, gameOver]);
+    }, [fallingRef.current, gameOver, gameStart]);
     //useEffect2: 实时维持cellsRef保存cells的最新状态，使相关调用正确运行
     useEffect(() => {
         cellsRef.current = cells;
@@ -154,7 +155,8 @@ function App() {
                 <div className={"score"}>{`分数 ${playerScore}`}</div>
             </div>
             <div className={"rightBar"}>
-                <button className={'restartBtn'} onClick={restartGame}>重新开始</button>
+                <button className={'restartBtn btn1'} onClick={() => setGameStart(true)}>开始游戏</button>
+                <button className={'restartBtn btn2'} onClick={restartGame}>重新开始</button>
                 <div className={"arrowContainer"}>
                     <img src={arrow} alt={"left arrow"} className={"arrow"}
                          onClick={() => (fallingRef.current && fallingRef.current.status === 'fall') && fallingRef.current.shift('left', 1, updateCells)}/>

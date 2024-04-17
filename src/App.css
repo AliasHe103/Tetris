@@ -104,8 +104,12 @@ html {
   width: 37.5vw;
   display: flex;
   flex-direction: column;
-  justify-content: space-evenly;
+  gap: 100px 100px;
   align-items: center;
+}
+
+.btn1 {
+  margin-top: 30vh;
 }
 
 .gameBoard {
