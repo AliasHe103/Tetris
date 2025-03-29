@@ -1,7 +1,7 @@
 import './App.css';
 import arrow from './images/arrow.svg'
 import {produce} from 'immer'
-import {Block, Falling, initialFalling, AuthorLink} from "./teris";
+import {Block, Falling, initialFalling, AuthorLink} from "./tetris";
 import {useCallback, useEffect, useRef, useState} from "react";
 //Todo:检查游戏结束的逻辑
 //游戏基本设计：20 * 10 的方格， 每次刷新方块掉落一格

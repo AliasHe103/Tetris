@@ -123,6 +123,9 @@ html {
   overflow-x: hidden;
   overflow-y: auto;
 }
+.gameBoard::-webkit-scrollbar {
+  display: none;
+}
 
 @keyframes emerge {
   from{opacity: 0}
